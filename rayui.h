@@ -99,27 +99,6 @@ Element MakeTextBox(
     float *fontScale
 );
 
-//makes a grid
-Element MakeGrid(
-    int numRows,
-    int numCols,
-    float *rowEnds,
-    float *colEnds,
-    int maxElems,
-    Vector2 pos,
-    float *scale
-);
-
-//moves an element to a pos on a grid
-void MoveElemToGrid(
-    int rowStart,
-    int rowEnd,
-    int colStart,
-    int colEnd,
-    Grid grid,
-    Element *addToGrid
-);
-
 //makes a box with an image in it
 Element MakeImageBox(
     Color color,
@@ -138,11 +117,45 @@ void DrawElement(Element elem);
 //frees data allocated to an element
 void FreeElement(Element *elem);
 
+//moves an element to a pos on a grid
+void MoveElemToGrid(
+    int rowStart,
+    int rowEnd,
+    int colStart,
+    int colEnd,
+    Grid grid,
+    Element *addToGrid
+);
+
+//dragger hitbox type
+enum DraggerHitbox {
+    DRAGGER_ELEM_HITBOX, DRAGGER_REC_HITBOX, DRAGGER_NO_HITBOX
+};
+
+//dragger target type
+enum DraggerTarget {
+    DRAGGER_ELEM_TARGET, DRAGGER_REC_TARGET, DRAGGER_VECTOR_TARGET
+};
+
+//Dragger bounds type
+enum DraggerBounds {
+    DRAGGER_ELEM_BOUNDS, DRAGGER_REC_BOUNDS, DRAGGER_NO_BOUNDS
+};
+
+//dragger bounds style
+    enum DraggerBoundStyle {
+    //the target must be fully inside the bounds
+    DRAGGER_BOUND_BOX,
+
+    //the target must, at some point, touch the bounds
+    DRAGGER_BOUND_TOUCH
+};
+
 //allows the user to drag elements (in screen space)
 typedef struct Dragger {
 
     //the type of hitbox
-    enum {ELEM_HITBOX, REC_HITBOX, NO_HITBOX} HitboxType;
+    enum DraggerHitbox HitboxType;
 
     //the hitbox that can be clicked to drag
     union {
@@ -157,7 +170,7 @@ typedef struct Dragger {
     Vector2 clickedPos;
 
     //the type of target
-    enum {ELEM_TARGET, REC_TARGET, VECTOR_TARGET} TargetType;
+    enum DraggerTarget TargetType;
 
     //the element that is being dragged
     union {
@@ -167,23 +180,16 @@ typedef struct Dragger {
     } target;
 
     //the type of bounds
-    enum {ELEM_BOUNDS, REC_BOUNDS, NO_BOUNDS} BoundsType;
+    enum DraggerBounds BoundsType;
 
     //the bounds of where the target can go, if null, is unbounded
     union {
         Element *elem;
         Rectangle *rec;
-        Camera2D *cam;
     } bound;
 
     //how the bounding box works
-    enum BoundStyle {
-        //the target must be fully inside the bounds
-        BOUND_BOX,
-
-        //the target must, at some point, touch the bounds
-        BOUND_TOUCH
-    } boundStyle;
+    enum DraggerBoundStyle boundStyle;
 
     //scales the amount the target gets dragged
     float scale;
@@ -250,6 +256,9 @@ typedef struct Button {
     //if the mouse is on the button
     char mouseOn;
 
+    //if the mouse was on the button last update
+    char mouseWasOn;
+
     //if the mouse went down over the button
     char mouseDownOver;
 
@@ -275,6 +284,18 @@ typedef struct Button {
 
 //updates the button
 void UpdateButton(Button *btn);
+
+//gets the output of a button given inital conditions and an input and output
+//style. This style may be diffrent than the style in the button itself which
+//allows for one button to give outputs in many styles. Also, given that the
+//output of a button is usually dependent on the previous output of the button,
+//it is another param
+char GetButtonOutput(
+    Button *btn,
+    enum ButtonInputStyle inputStyle,
+    enum ButtonOutputStyle outputStyle,
+    char prevOutput
+);
 
 //makes a button from an element. this doesn't allocate any mem, just a QoL
 //thing since a lot of params in the Button struct will, in most cases, be 0

@@ -192,7 +192,7 @@ void UpdateButton(Button *btn)
 
     if(btn->cam != NULL)mousePos = GetScreenToWorld2D(mousePos, *(btn->cam));
 
-    char prevMouseOn = btn->mouseOn;
+    btn->mouseWasOn = btn->mouseOn;
 
     float hitboxScale;
     switch(btn->hitboxType)
@@ -234,13 +234,35 @@ void UpdateButton(Button *btn)
     if(!btn->mouseEntered)
         btn->mouseEntered = !btn->mouseDownOver && btn->mouseOn;
 
+    if(
+        (btn->inputStyle == BUTTON_INPUT_NONE) ||
+        (btn->outputStyle == BUTTON_OUTPUT_NONE)
+    )return;
+
+    btn->output = GetButtonOutput(
+        btn, btn->inputStyle, btn->outputStyle, btn->output
+    );
+}
+
+char GetButtonOutput(
+    Button *btn,
+    enum ButtonInputStyle inputStyle,
+    enum ButtonOutputStyle outputStyle,
+    char prevOutput
+)
+{
+    if(
+        (inputStyle == BUTTON_INPUT_NONE) ||
+        (outputStyle == BUTTON_OUTPUT_NONE)
+    )return prevOutput;
+
     //if the element is clicked on based on the input method
     char clicked = 0;
 
     //if the button is clicked off of
     char unclicked = 0;
 
-    switch(btn->inputStyle)
+    switch(inputStyle)
     {
         case BUTTON_INPUT_ON_AND_OFF:
             if(IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
@@ -289,33 +311,34 @@ void UpdateButton(Button *btn)
                 unclicked = btn->mouseOn;
             else if(IsMouseButtonDown(MOUSE_LEFT_BUTTON))
             {
-                clicked = !prevMouseOn && btn->mouseOn;
-                unclicked = prevMouseOn && !btn->mouseOn;
+                clicked = !btn->mouseWasOn && btn->mouseOn;
+                unclicked = btn->mouseWasOn && !btn->mouseOn;
             }
-
 
         case BUTTON_INPUT_NONE:
             break;
     }
 
-    switch(btn->outputStyle)
+    switch(outputStyle)
     {
         case BUTTON_OUTPUT_FRAME:
-            btn->output = clicked;
+            return clicked;
             break;
 
         case BUTTON_OUTPUT_SELECT:
-            if(clicked)btn->output = 1;
-            if(unclicked)btn->output = 0;
+            if(clicked)return 1;
+            if(unclicked)return 0;
             break;
 
         case BUTTON_OUTPUT_TOGGLE:
-            if(clicked)btn->output ^= 1;
+            if(clicked)return prevOutput ^ 1;
             break;
 
         case BUTTON_OUTPUT_NONE:
             break;
     }
+
+    return prevOutput;
 }
 
 Button MakeElemButton(
@@ -331,7 +354,7 @@ Button MakeElemButton(
         .mouseDownOver = 0,
         .mouseUpOver = 0,
         .output = 0,
-        .mouseOn = 0,
+        .mouseWasOn = 0,
         .hitboxType = ELEM_BUTTON,
         .inputStyle = inStyle,
         .outputStyle = outStyle,
@@ -354,6 +377,7 @@ Button MakeRectButton(
         .mouseUpOver = 0,
         .output = 0,
         .mouseOn = 0,
+        .mouseWasOn = 0,
         .hitboxType = REC_BUTTON,
         .inputStyle = inStyle,
         .outputStyle = outStyle,
