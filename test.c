@@ -8,6 +8,8 @@ int main(void)
 
     float uiScale = 1.0f;
 
+    char str[] = "Hello, World";
+
     Element box = MakeTextBox(
         RED,
         (Vector2) {100.0f, 100.0f},
@@ -15,35 +17,37 @@ int main(void)
         &uiScale,
         WHITE,
         (Vector2) {100.0f, 100.0f},
-        "0",
+        str,
         10,
         NULL
     );
 
     Button btn = MakeElemButton(
-        NULL, &box, BUTTON_INPUT_NONE, BUTTON_OUTPUT_NONE
+        NULL, &box, BUTTON_INPUT_STAY, BUTTON_OUTPUT_TOGGLE
+    );
+
+    Dragger test = MakeDragger(
+        DRAGGER_PTR_HITBOX,
+        (union DraggerHitbox) {.clickedPtr = &(btn.output)},
+        DRAGGER_ELEM_TARGET,
+        (union DraggerTarget) {.elem = &box},
+        DRAGGER_NO_BOUNDS,
+        (union DraggerBounds) {},
+        DRAGGER_BOUND_FALSE,
+        NULL,
+        NULL
     );
 
     SetTargetFPS(30);
-
-    char outputOne = 0, outputTwo = 0;
 
     while (!WindowShouldClose())
     {
         ClearBackground(WHITE);
 
         UpdateButton(&btn);
+        UpdateDrag(&test);
 
-        outputOne = GetButtonOutput(
-            &btn, BUTTON_INPUT_STAY, BUTTON_OUTPUT_FRAME, outputOne
-        );
-
-        outputTwo = GetButtonOutput(
-            &btn, BUTTON_INPUT_STAY, BUTTON_OUTPUT_SELECT, outputTwo
-        );
-
-        box.data.textbox->color = outputTwo ? GREEN : RED;
-        (box.data.textbox->text)[0] = 49;
+        box.data.textbox->color = btn.output ? GREEN : RED;
 
         DrawElement(box);
 //        uiScale *= 1.01;

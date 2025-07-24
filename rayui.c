@@ -186,6 +186,155 @@ void DrawElement(Element elem)
     }
 }
 
+Dragger MakeDragger(
+    enum DraggerHitboxType hitboxType,
+    union DraggerHitbox  hitbox,
+    enum DraggerTargetType targetType,
+    union DraggerTarget target,
+    enum DraggerBoundsType boundsType,
+    union DraggerBounds bound,
+    enum DraggerBoundStyle boundStyle,
+    float *scale,
+    Camera2D *cam
+)
+{
+    return (Dragger) {
+        .cam = cam,
+        .scale = scale,
+        .clicked = 0,
+        .prevClicked = 0,
+        .clickedPos = (Vector2) {0.0f, 0.0f},
+        .prevMousePos = (Vector2) {0.0f, 0.0f},
+        .boundStyle = boundStyle,
+        .bound = bound,
+        .boundsType = boundsType,
+        .hitboxType = hitboxType,
+        .hitbox = hitbox,
+        .targetType = targetType,
+        .target = target
+    };
+}
+
+void UpdateDrag(Dragger *drag)
+{
+    Vector2 mousePos = GetMousePosition();
+    if(drag->cam != NULL)mousePos = GetScreenToWorld2D(
+        mousePos, *(drag->cam)
+    );
+
+    float hitboxElemScale;
+    switch(drag->hitboxType)
+    {
+        case DRAGGER_ELEM_HITBOX:
+
+            if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                hitboxElemScale = (drag->hitbox.elem->scale == NULL) ?
+                    1.0f : *(drag->hitbox.elem->scale);
+
+                drag->clicked = CheckCollisionPointRec(
+                    mousePos, (Rectangle) {
+                        drag->hitbox.elem->pos.x * hitboxElemScale,
+                        drag->hitbox.elem->pos.y * hitboxElemScale,
+                        drag->hitbox.elem->dim.x * hitboxElemScale,
+                        drag->hitbox.elem->dim.y * hitboxElemScale
+                    });
+            } else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+                drag->clicked = 0;
+
+            break;
+
+        case DRAGGER_REC_HITBOX:
+
+            if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                drag->clicked = CheckCollisionPointRec(
+                    mousePos, *(drag->hitbox.rec)
+                );
+            } else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+                drag->clicked = 0;
+
+            break;
+
+        case DRAGGER_PTR_HITBOX:
+
+            drag->clicked = *(drag->hitbox.clickedPtr);
+
+            break;
+
+        case DRAGGER_NO_HITBOX:
+            break;
+    }
+
+    float dragScale = (drag->scale == NULL) ? 1.0f : *(drag->scale);
+
+    if(drag->clicked)
+    {
+        if(!drag->prevClicked)
+        {
+            drag->clickedPos = mousePos;
+        } else {
+
+            float targetElemScale;
+            switch(drag->targetType)
+            {
+                case DRAGGER_ELEM_TARGET:
+
+                    targetElemScale = (drag->target.elem->scale == NULL) ?
+                        1.0f : *(drag->target.elem->scale);
+
+                    drag->target.elem->pos.x -=
+                        (drag->prevMousePos.x - drag->clickedPos.x) *
+                        dragScale / targetElemScale;
+                    drag->target.elem->pos.y -=
+                        (drag->prevMousePos.y - drag->clickedPos.y) *
+                        dragScale / targetElemScale;
+
+                    drag->target.elem->pos.x +=
+                        (mousePos.x - drag->clickedPos.x) *
+                        dragScale / targetElemScale;
+                    drag->target.elem->pos.y +=
+                        (mousePos.y - drag->clickedPos.y) *
+                        dragScale / targetElemScale;
+                    break;
+
+                case DRAGGER_REC_HITBOX:
+                    drag->target.rec->x -=
+                        (drag->prevMousePos.x - drag->clickedPos.x) *
+                        dragScale;
+                    drag->target.rec->y -=
+                        (drag->prevMousePos.y - drag->clickedPos.y) *
+                        dragScale;
+
+                    drag->target.rec->x +=
+                        (mousePos.x - drag->clickedPos.x) * dragScale;
+                    drag->target.rec->y +=
+                        (mousePos.y - drag->clickedPos.y) * dragScale;
+                    break;
+
+                case DRAGGER_VECTORS_TARGET:
+                    drag->target.vecs.pos->x -=
+                        (drag->prevMousePos.x - drag->clickedPos.x) *
+                        dragScale;
+                    drag->target.vecs.pos->y -=
+                        (drag->prevMousePos.y - drag->clickedPos.y) *
+                        dragScale;
+
+                    drag->target.vecs.pos->x +=
+                        (mousePos.x - drag->clickedPos.x) *
+                        dragScale;
+                    drag->target.vecs.pos->y +=
+                        (mousePos.y - drag->clickedPos.y) *
+                        dragScale;
+                    break;
+            }
+        }
+    }
+
+    drag->prevMousePos = mousePos;
+    drag->prevClicked = drag->clicked;
+}
+
 void UpdateButton(Button *btn)
 {
     Vector2 mousePos = GetMousePosition();

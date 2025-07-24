@@ -128,18 +128,55 @@ void MoveElemToGrid(
 );
 
 //dragger hitbox type
-enum DraggerHitbox {
-    DRAGGER_ELEM_HITBOX, DRAGGER_REC_HITBOX, DRAGGER_NO_HITBOX
+enum DraggerHitboxType {
+    //an elem being clicked detirmines if the dragger should drag
+    DRAGGER_ELEM_HITBOX,
+
+    //a rec being clicked derirmines if the dragger should drag
+    DRAGGER_REC_HITBOX,
+
+    //the dragger does not detirmine for itself if it should drag anything
+    //instead, you should manually set .clicked for each dragger with this
+    //hitbox type
+    DRAGGER_NO_HITBOX,
+
+    //.clicked is set to whatever DraggerHitbox.clickedPtr is set to for
+    //draggers of this type
+    DRAGGER_PTR_HITBOX
+};
+
+//the hitbox of a dragger
+union DraggerHitbox {
+    Element *elem;
+    Rectangle *rec;
+    char *clickedPtr;
 };
 
 //dragger target type
-enum DraggerTarget {
-    DRAGGER_ELEM_TARGET, DRAGGER_REC_TARGET, DRAGGER_VECTOR_TARGET
+enum DraggerTargetType {
+    DRAGGER_ELEM_TARGET, DRAGGER_REC_TARGET, DRAGGER_VECTORS_TARGET
+};
+
+//the target of a dragger
+union DraggerTarget {
+    Element *elem;
+    Rectangle *rec;
+    //if *dim is NULL, then it is interpreted as {0.0f, 0.0f}
+    struct {
+        Vector2 *pos;
+        Vector2 *dim;
+    } vecs;
 };
 
 //Dragger bounds type
-enum DraggerBounds {
+enum DraggerBoundsType {
     DRAGGER_ELEM_BOUNDS, DRAGGER_REC_BOUNDS, DRAGGER_NO_BOUNDS
+};
+
+//the bounds for a dragger
+union DraggerBounds {
+    Element *elem;
+    Rectangle *rec;
 };
 
 //dragger bounds style
@@ -148,58 +185,70 @@ enum DraggerBounds {
     DRAGGER_BOUND_BOX,
 
     //the target must, at some point, touch the bounds
-    DRAGGER_BOUND_TOUCH
+    DRAGGER_BOUND_TOUCH,
+
+    //no bounds exist
+    DRAGGER_BOUND_FALSE
 };
 
 //allows the user to drag elements (in screen space)
 typedef struct Dragger {
 
     //the type of hitbox
-    enum DraggerHitbox HitboxType;
+    enum DraggerHitboxType hitboxType;
 
     //the hitbox that can be clicked to drag
-    union {
-        Element *elem;
-        Rectangle *rec;
-    } hitbox;
+    union DraggerHitbox hitbox;
 
-    //if the tracker was clicked
+    //if the dragger was clicked
     char clicked;
+
+    //if the dragger was clicked the last time it was updated
+    char prevClicked;
 
     //where the hitbox was when it got clicked
     Vector2 clickedPos;
 
+    //wher ethe mouse was last update
+    Vector2 prevMousePos;
+
     //the type of target
-    enum DraggerTarget TargetType;
+    enum DraggerTargetType targetType;
 
     //the element that is being dragged
-    union {
-        Element *elem;
-        Rectangle *rec;
-        Vector2 *vec;
-    } target;
+    union DraggerTarget target;
 
     //the type of bounds
-    enum DraggerBounds BoundsType;
+    enum DraggerBoundsType boundsType;
 
     //the bounds of where the target can go, if null, is unbounded
-    union {
-        Element *elem;
-        Rectangle *rec;
-    } bound;
+    union DraggerBounds bound;
 
     //how the bounding box works
     enum DraggerBoundStyle boundStyle;
 
     //scales the amount the target gets dragged
-    float scale;
+    float *scale;
 
     //the camera used, if null, no cam is used
     Camera2D *cam;
 } Dragger;
 
+//makes a dragger, although does not alloc mem
+Dragger MakeDragger(
+    enum DraggerHitboxType hitboxType,
+    union DraggerHitbox  hitbox,
+    enum DraggerTargetType targetType,
+    union DraggerTarget target,
+    enum DraggerBoundsType boundsType,
+    union DraggerBounds bound,
+    enum DraggerBoundStyle boundStyle,
+    float *scale,
+    Camera2D *cam
+);
+
 //updates drag
-void UpdateDrag(Dragger drag);
+void UpdateDrag(Dragger *drag);
 
 //applies the bounding box to a gragged element
 void BoundDrag(Dragger drag);
