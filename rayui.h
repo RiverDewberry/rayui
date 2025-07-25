@@ -251,7 +251,7 @@ Dragger MakeDragger(
 void UpdateDrag(Dragger *drag);
 
 //applies the bounding box to a gragged element
-void BoundDrag(Dragger drag);
+void BoundDrag(Dragger *drag);
 
 //the output styles for a button
 enum ButtonOutputStyle {

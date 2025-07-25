@@ -215,6 +215,121 @@ Dragger MakeDragger(
     };
 }
 
+void BoundDrag(Dragger *drag)
+{
+
+    if(drag->boundsType == DRAGGER_NO_BOUNDS)return;
+
+    Vector2 pos, dim;
+
+    float elemTargetScale;
+    switch(drag->targetType)
+    {
+        case DRAGGER_VECTORS_TARGET:
+            pos = *(drag->target.vecs.pos);
+            dim = *(drag->target.vecs.dim);
+            break;
+
+        case DRAGGER_ELEM_TARGET:
+            elemTargetScale = (drag->target.elem->scale == NULL) ?
+                1.0f : *(drag->target.elem->scale);
+
+            pos.x = drag->target.elem->pos.x * elemTargetScale;
+            pos.y = drag->target.elem->pos.y * elemTargetScale;
+            dim.x = drag->target.elem->dim.x * elemTargetScale;
+            dim.y = drag->target.elem->dim.y * elemTargetScale;
+            break;
+
+        case DRAGGER_REC_TARGET:
+            pos.x = drag->target.rec->x;
+            pos.y = drag->target.rec->y;
+            dim.x = drag->target.rec->width;
+            dim.y = drag->target.rec->height;
+            break;
+    }
+
+    Vector2 boundPos, boundDim;
+
+    float elemBoundsScale;
+    switch(drag->boundsType)
+    {
+        case DRAGGER_REC_BOUNDS:
+            boundPos.x = drag->bound.rec->x;
+            boundPos.y = drag->bound.rec->y;
+            boundDim.x = drag->bound.rec->width;
+            boundDim.y = drag->bound.rec->height;
+            break;
+
+        case DRAGGER_ELEM_BOUNDS:
+            elemBoundsScale = (drag->bound.elem->scale == NULL) ?
+                1.0f : *(drag->bound.elem->scale);
+
+            boundPos.x = drag->bound.rec->x * elemBoundsScale;
+            boundPos.y = drag->bound.rec->y * elemBoundsScale;
+            boundDim.x = drag->bound.rec->width * elemBoundsScale;
+            boundDim.y = drag->bound.rec->height * elemBoundsScale;
+            break;
+
+        case DRAGGER_NO_BOUNDS:
+            printf(
+                "Oh fuck, something went wrong! It's probably my fault, but "
+                "if it isn't, you are sooo fucking cooked.\n"
+            );
+            break;
+    }
+
+    switch(drag->boundStyle)
+    {
+        case DRAGGER_BOUND_BOX:
+            if(pos.x < boundPos.x)pos.x = boundPos.x;
+            if(pos.y < boundPos.y)pos.y = boundPos.y;
+            if(pos.x + dim.x > boundPos.x + boundDim.x)
+                pos.x = boundPos.x + boundDim.x - dim.x;
+            if(pos.y + dim.y > boundPos.y + boundDim.y)
+                pos.y = boundPos.y + boundDim.y - dim.y;
+            break;
+
+        case DRAGGER_BOUND_TOUCH:
+            if(pos.x < boundPos.x - dim.x)pos.x = boundPos.x - dim.x;
+            if(pos.y < boundPos.y - dim.y)pos.y = boundPos.y - dim.y;
+            if(pos.x > boundPos.x + boundDim.x)
+                pos.x = boundPos.x + boundDim.x;
+            if(pos.y > boundPos.y + boundDim.y)
+                pos.y = boundPos.y + boundDim.y;
+            break;
+
+        case DRAGGER_BOUND_FALSE:
+            //if you get here, wtf are you doing???
+            break;
+
+    }
+
+    switch(drag->targetType)
+    {
+        case DRAGGER_VECTORS_TARGET:
+            *(drag->target.vecs.pos) = pos;
+            *(drag->target.vecs.dim) = dim;
+            break;
+
+        case DRAGGER_ELEM_TARGET:
+            elemTargetScale = (drag->target.elem->scale == NULL) ?
+                1.0f : *(drag->target.elem->scale);
+
+            drag->target.elem->pos.x = pos.x / elemTargetScale;
+            drag->target.elem->pos.y = pos.y / elemTargetScale;
+            drag->target.elem->dim.x = dim.x / elemTargetScale;
+            drag->target.elem->dim.y = dim.y / elemTargetScale;
+            break;
+
+        case DRAGGER_REC_TARGET:
+            drag->target.rec->x = pos.x;
+            drag->target.rec->y = pos.y;
+            drag->target.rec->width = dim.x;
+            drag->target.rec->height = dim.y;
+            break;
+    }
+}
+
 void UpdateDrag(Dragger *drag)
 {
     Vector2 mousePos = GetMousePosition();
@@ -333,6 +448,8 @@ void UpdateDrag(Dragger *drag)
 
     drag->prevMousePos = mousePos;
     drag->prevClicked = drag->clicked;
+
+    BoundDrag(drag);
 }
 
 void UpdateButton(Button *btn)
