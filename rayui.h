@@ -10,14 +10,34 @@ void Zoom(float *fl, float min, float max, float speed);
 
 //a grid on which elements or rectangles can be placed
 typedef struct Grid {
+    //the position of the grid
     Vector2 pos;
+
+    //the number of rows in the grid
     int numRows;
+
+    //the number of columns in the grid
     int numCols;
+
+    //list of where the rows in the grid end, should be in increasing order
     float *rowEnds;
+
+    //list of where the columns in the grid end, should be in increasing order
     float *colEnds;
+
     //if scale is NULL, then it is treated as 1.0f
     float *scale;
 } Grid;
+
+//moves a rectangle to a spot on a grid
+void MoveRecToGrid(
+    int rowStart,
+    int rowEnd,
+    int colStart,
+    int colEnd,
+    Grid grid,
+    Rectangle *rec
+);
 
 struct ElementBoxData {
     Color color;
@@ -124,8 +144,20 @@ void MoveElemToGrid(
     int colStart,
     int colEnd,
     Grid grid,
-    Element *addToGrid
+    Element *elem
 );
+
+//sets the scaled position of an element to a vec2
+void SetElemPos(Element *elem, Vector2 pos);
+
+//sets the scaled dimensions of an element to a vec2
+void SetElemDim(Element *elem, Vector2 dim);
+
+//gets the scaled position of an element
+Vector2 GetElemPos(Element elem);
+
+//gets the scaled dimensions of an element
+Vector2 GetElemDim(Element elem);
 
 //dragger hitbox type
 enum DraggerHitboxType {
@@ -209,7 +241,7 @@ typedef struct Dragger {
     //where the hitbox was when it got clicked
     Vector2 clickedPos;
 
-    //wher ethe mouse was last update
+    //where the mouse was last update
     Vector2 prevMousePos;
 
     //the type of target
@@ -251,7 +283,13 @@ Dragger MakeDragger(
 void UpdateDrag(Dragger *drag);
 
 //applies the bounding box to a gragged element
-void BoundDrag(Dragger *drag);
+void BoundDrag(
+    enum DraggerTargetType targetType,
+    union DraggerTarget target,
+    enum DraggerBoundsType boundsType,
+    union DraggerBounds bound,
+    enum DraggerBoundStyle boundStyle
+);
 
 //the output styles for a button
 enum ButtonOutputStyle {

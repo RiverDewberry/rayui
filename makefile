@@ -11,3 +11,6 @@ build:
 
 run:
 	./uitest
+test:
+	${CC} -g ./*.c -o uitest -I . ${LIB}
+	gdb ./uitest

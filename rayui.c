@@ -215,59 +215,66 @@ Dragger MakeDragger(
     };
 }
 
-void BoundDrag(Dragger *drag)
-{
+void BoundDrag(
+    enum DraggerTargetType targetType,
+    union DraggerTarget target,
+    enum DraggerBoundsType boundsType,
+    union DraggerBounds bound,
+    enum DraggerBoundStyle boundStyle
+){
 
-    if(drag->boundsType == DRAGGER_NO_BOUNDS)return;
+    if(boundsType == DRAGGER_NO_BOUNDS)return;
+    if(boundStyle == DRAGGER_BOUND_FALSE)return;
 
     Vector2 pos, dim;
 
     float elemTargetScale;
-    switch(drag->targetType)
+    switch(targetType)
     {
         case DRAGGER_VECTORS_TARGET:
-            pos = *(drag->target.vecs.pos);
-            dim = *(drag->target.vecs.dim);
+            pos = *(target.vecs.pos);
+            dim = (target.vecs.dim == NULL) ?
+                (Vector2) {0.0f, 0.0f} : *(target.vecs.dim);
             break;
 
         case DRAGGER_ELEM_TARGET:
-            elemTargetScale = (drag->target.elem->scale == NULL) ?
-                1.0f : *(drag->target.elem->scale);
+            elemTargetScale = (target.elem->scale == NULL) ?
+                1.0f : *(target.elem->scale);
 
-            pos.x = drag->target.elem->pos.x * elemTargetScale;
-            pos.y = drag->target.elem->pos.y * elemTargetScale;
-            dim.x = drag->target.elem->dim.x * elemTargetScale;
-            dim.y = drag->target.elem->dim.y * elemTargetScale;
+            pos.x = target.elem->pos.x * elemTargetScale;
+            pos.y = target.elem->pos.y * elemTargetScale;
+            dim.x = target.elem->dim.x * elemTargetScale;
+            dim.y = target.elem->dim.y * elemTargetScale;
             break;
 
         case DRAGGER_REC_TARGET:
-            pos.x = drag->target.rec->x;
-            pos.y = drag->target.rec->y;
-            dim.x = drag->target.rec->width;
-            dim.y = drag->target.rec->height;
+            pos.x = target.rec->x;
+            pos.y = target.rec->y;
+            dim.x = target.rec->width;
+            dim.y = target.rec->height;
             break;
     }
 
     Vector2 boundPos, boundDim;
 
     float elemBoundsScale;
-    switch(drag->boundsType)
+    switch(boundsType)
     {
         case DRAGGER_REC_BOUNDS:
-            boundPos.x = drag->bound.rec->x;
-            boundPos.y = drag->bound.rec->y;
-            boundDim.x = drag->bound.rec->width;
-            boundDim.y = drag->bound.rec->height;
+            boundPos.x = bound.rec->x;
+            boundPos.y = bound.rec->y;
+            boundDim.x = bound.rec->width;
+            boundDim.y = bound.rec->height;
             break;
 
         case DRAGGER_ELEM_BOUNDS:
-            elemBoundsScale = (drag->bound.elem->scale == NULL) ?
-                1.0f : *(drag->bound.elem->scale);
+            elemBoundsScale = (bound.elem->scale == NULL) ?
+                1.0f : *(bound.elem->scale);
 
-            boundPos.x = drag->bound.rec->x * elemBoundsScale;
-            boundPos.y = drag->bound.rec->y * elemBoundsScale;
-            boundDim.x = drag->bound.rec->width * elemBoundsScale;
-            boundDim.y = drag->bound.rec->height * elemBoundsScale;
+            boundPos.x = bound.rec->x * elemBoundsScale;
+            boundPos.y = bound.rec->y * elemBoundsScale;
+            boundDim.x = bound.rec->width * elemBoundsScale;
+            boundDim.y = bound.rec->height * elemBoundsScale;
             break;
 
         case DRAGGER_NO_BOUNDS:
@@ -278,7 +285,7 @@ void BoundDrag(Dragger *drag)
             break;
     }
 
-    switch(drag->boundStyle)
+    switch(boundStyle)
     {
         case DRAGGER_BOUND_BOX:
             if(pos.x < boundPos.x)pos.x = boundPos.x;
@@ -304,28 +311,29 @@ void BoundDrag(Dragger *drag)
 
     }
 
-    switch(drag->targetType)
+    switch(targetType)
     {
         case DRAGGER_VECTORS_TARGET:
-            *(drag->target.vecs.pos) = pos;
-            *(drag->target.vecs.dim) = dim;
+            *(target.vecs.pos) = pos;
+            if(target.vecs.dim == NULL)break;
+            *(target.vecs.dim) = dim;
             break;
 
         case DRAGGER_ELEM_TARGET:
-            elemTargetScale = (drag->target.elem->scale == NULL) ?
-                1.0f : *(drag->target.elem->scale);
+            elemTargetScale = (target.elem->scale == NULL) ?
+                1.0f : *(target.elem->scale);
 
-            drag->target.elem->pos.x = pos.x / elemTargetScale;
-            drag->target.elem->pos.y = pos.y / elemTargetScale;
-            drag->target.elem->dim.x = dim.x / elemTargetScale;
-            drag->target.elem->dim.y = dim.y / elemTargetScale;
+            target.elem->pos.x = pos.x / elemTargetScale;
+            target.elem->pos.y = pos.y / elemTargetScale;
+            target.elem->dim.x = dim.x / elemTargetScale;
+            target.elem->dim.y = dim.y / elemTargetScale;
             break;
 
         case DRAGGER_REC_TARGET:
-            drag->target.rec->x = pos.x;
-            drag->target.rec->y = pos.y;
-            drag->target.rec->width = dim.x;
-            drag->target.rec->height = dim.y;
+            target.rec->x = pos.x;
+            target.rec->y = pos.y;
+            target.rec->width = dim.x;
+            target.rec->height = dim.y;
             break;
     }
 }
@@ -449,7 +457,13 @@ void UpdateDrag(Dragger *drag)
     drag->prevMousePos = mousePos;
     drag->prevClicked = drag->clicked;
 
-    BoundDrag(drag);
+    BoundDrag(
+        drag->targetType,
+        drag->target,
+        drag->boundsType,
+        drag->bound,
+        drag->boundStyle
+    );
 }
 
 void UpdateButton(Button *btn)
@@ -650,4 +664,75 @@ Button MakeRectButton(
         .hitbox.rec = hitbox,
         .cam = cam,
     };
+}
+
+void MoveRecToGrid(
+    int rowStart,
+    int rowEnd,
+    int colStart,
+    int colEnd,
+    Grid grid,
+    Rectangle *rec
+)
+{
+    float gridScale = (grid.scale == NULL) ? 1.0f : *(grid.scale);
+
+    rec->x = grid.pos.x * gridScale;
+    rec->y = grid.pos.y * gridScale;
+    if(colStart != 0) rec->x += grid.colEnds[colStart - 1] * gridScale;
+    if(rowStart != 0) rec->y += grid.rowEnds[rowStart - 1] * gridScale;
+    rec->width = (grid.colEnds[colEnd] * gridScale) - rec->x;
+    rec->height = (grid.rowEnds[rowEnd] * gridScale) - rec->y;
+}
+
+void MoveElemToGrid(
+    int rowStart,
+    int rowEnd,
+    int colStart,
+    int colEnd,
+    Grid grid,
+    Element *elem
+)
+{
+    float elemScale = (elem->scale == NULL) ? 1.0f : *(elem->scale);
+
+    Rectangle rec = {
+        .x = elem->pos.x * elemScale,
+        .y = elem->pos.y * elemScale,
+        .width = elem->dim.x * elemScale,
+        .height = elem->dim.y * elemScale,
+    };
+
+    MoveRecToGrid(rowStart, rowEnd, colStart, colEnd, grid, &rec);
+
+    elem->pos.x = rec.x / elemScale;
+    elem->pos.y = rec.y / elemScale;
+    elem->dim.x = rec.width / elemScale;
+    elem->dim.y = rec.height / elemScale;
+}
+
+void SetElemPos(Element *elem, Vector2 pos)
+{
+    float scale = (elem->scale == NULL) ? 1.0f : *(elem->scale);
+    elem->pos.x = pos.x / scale;
+    elem->pos.y = pos.y / scale;
+}
+
+void SetElemDim(Element *elem, Vector2 dim)
+{
+    float scale = (elem->scale == NULL) ? 1.0f : *(elem->scale);
+    elem->dim.x = dim.x / scale;
+    elem->dim.y = dim.y / scale;
+}
+
+Vector2 GetElemPos(Element elem)
+{
+    float scale = (elem.scale == NULL) ? 1.0f : *(elem.scale);
+    return (Vector2) {elem.pos.x * scale, elem.pos.y * scale};
+}
+
+Vector2 GetElemDim(Element elem)
+{
+    float scale = (elem.scale == NULL) ? 1.0f : *(elem.scale);
+    return (Vector2) {elem.dim.x * scale, elem.dim.y * scale};
 }
