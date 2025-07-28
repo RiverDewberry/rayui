@@ -594,6 +594,12 @@ char GetButtonOutput(
                 clicked = !btn->mouseWasOn && btn->mouseOn;
                 unclicked = btn->mouseWasOn && !btn->mouseOn;
             }
+            break;
+
+        case BUTTON_INPUT_FOCUS:
+            unclicked = btn->mouseWasOn && !btn->mouseOn;
+            clicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && btn->mouseOn;
+            break;
 
         case BUTTON_INPUT_NONE:
             break;
@@ -735,4 +741,60 @@ Vector2 GetElemDim(Element elem)
 {
     float scale = (elem.scale == NULL) ? 1.0f : *(elem.scale);
     return (Vector2) {elem.dim.x * scale, elem.dim.y * scale};
+}
+
+TextInput MakeTextInput
+(
+    char *output,
+    unsigned int maxLen,
+    char *focusPtr,
+    char charRangesNum,
+    struct CharRange *allowedChars  
+)
+{
+    return (TextInput) {
+        .output = output,
+        .maxLen = maxLen,
+        .focused = 0,
+        .focusPtr = focusPtr,
+        .charRangesNum = charRangesNum,
+        .allowedChars = allowedChars,
+        .curLen = 0
+    };
+}
+
+void UpdateTextInput(TextInput *input)
+{
+    if(input->focusPtr != NULL)input->focused = *(input->focusPtr);
+    if(!input->focused)return;
+    int temp;
+
+    if(IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE))
+    {
+        if(input->curLen == 0)return;
+        input->curLen--;
+        input->output[input->curLen] = 0;
+    }
+
+    while((temp = GetCharPressed()) != 0)
+    {
+        if(input->curLen >= input->maxLen)return;
+        char isValid = 0;
+
+        for(int i = input->charRangesNum; i-- > 0;)
+        {
+            isValid |=
+                (input->allowedChars[i].min <= temp) &&
+                (input->allowedChars[i].max >= temp);
+
+            if(isValid)break;
+        }
+
+        if(isValid)
+        {
+            input->output[input->curLen] = temp;
+            input->curLen++;
+            input->output[input->curLen] = 0;
+        }
+    }
 }

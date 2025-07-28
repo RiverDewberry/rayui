@@ -321,9 +321,13 @@ enum ButtonInputStyle {
     //clicked if the mouse went down and up while over the button
     BUTTON_INPUT_ON_AND_OFF,
 
-    //same as on and off with the added condition that the mouse must have remained
-    //on the button while it was down
+    //same as on and off with the added condition that the mouse must have
+    //remained on the button while it was down
     BUTTON_INPUT_STAY,
+
+    //turns on when the user clicks on it, turns off when the mouse leaves the
+    //button
+    BUTTON_INPUT_FOCUS,
 
     //allows for custom behavior by doing nothing on its own
     BUTTON_INPUT_NONE
@@ -401,5 +405,47 @@ Button MakeRectButton(
     enum ButtonInputStyle inStyle,
     enum ButtonOutputStyle outStyle
 );
+
+struct CharRange {
+    //the lowest char in the range (inclusive)
+    char min;
+
+    //the highest char allowed in the rane
+    char max;
+};
+
+typedef struct TextInput {
+    //where the text input goes to
+    char *output;
+
+    //the maximum len of the output
+    unsigned int maxLen;
+
+    //current length of the output
+    unsigned int curLen;
+
+    //if the text input is currently being used
+    char focused;
+
+    //focused is set to the value at this ptr unless it is NULL
+    char *focusPtr;
+
+    //the number of char ranges
+    char charRangesNum;
+
+    //ranges of chars that are allowed as inputs
+    struct CharRange *allowedChars;
+} TextInput;
+
+TextInput MakeTextInput
+(
+    char *output,
+    unsigned int maxLen,
+    char *focusedPtr,
+    char charRangesNum,
+    struct CharRange *allowedChars  
+);
+
+void UpdateTextInput(TextInput *input);
 
 #endif
