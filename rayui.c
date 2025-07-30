@@ -341,9 +341,17 @@ void BoundDrag(
 void UpdateDrag(Dragger *drag)
 {
     Vector2 mousePos = GetMousePosition();
-    if(drag->cam != NULL)mousePos = GetScreenToWorld2D(
+    Vector2 prevMousePos = drag->prevMousePos;
+    if(drag->cam != NULL)
+    {
+        mousePos = GetScreenToWorld2D(
         mousePos, *(drag->cam)
-    );
+        );
+
+        prevMousePos = GetScreenToWorld2D(
+        prevMousePos, *(drag->cam)
+        );
+    };
 
     float hitboxElemScale;
     switch(drag->hitboxType)
@@ -407,10 +415,10 @@ void UpdateDrag(Dragger *drag)
                         1.0f : *(drag->target.elem->scale);
 
                     drag->target.elem->pos.x -=
-                        (drag->prevMousePos.x - drag->clickedPos.x) *
+                        (prevMousePos.x - drag->clickedPos.x) *
                         dragScale / targetElemScale;
                     drag->target.elem->pos.y -=
-                        (drag->prevMousePos.y - drag->clickedPos.y) *
+                        (prevMousePos.y - drag->clickedPos.y) *
                         dragScale / targetElemScale;
 
                     drag->target.elem->pos.x +=
@@ -421,12 +429,12 @@ void UpdateDrag(Dragger *drag)
                         dragScale / targetElemScale;
                     break;
 
-                case DRAGGER_REC_HITBOX:
+                case DRAGGER_REC_TARGET:
                     drag->target.rec->x -=
-                        (drag->prevMousePos.x - drag->clickedPos.x) *
+                        (prevMousePos.x - drag->clickedPos.x) *
                         dragScale;
                     drag->target.rec->y -=
-                        (drag->prevMousePos.y - drag->clickedPos.y) *
+                        (prevMousePos.y - drag->clickedPos.y) *
                         dragScale;
 
                     drag->target.rec->x +=
@@ -437,10 +445,10 @@ void UpdateDrag(Dragger *drag)
 
                 case DRAGGER_VECTORS_TARGET:
                     drag->target.vecs.pos->x -=
-                        (drag->prevMousePos.x - drag->clickedPos.x) *
+                        (prevMousePos.x - drag->clickedPos.x) *
                         dragScale;
                     drag->target.vecs.pos->y -=
-                        (drag->prevMousePos.y - drag->clickedPos.y) *
+                        (prevMousePos.y - drag->clickedPos.y) *
                         dragScale;
 
                     drag->target.vecs.pos->x +=
@@ -454,7 +462,7 @@ void UpdateDrag(Dragger *drag)
         }
     }
 
-    drag->prevMousePos = mousePos;
+    drag->prevMousePos = GetMousePosition();
     drag->prevClicked = drag->clicked;
 
     BoundDrag(
